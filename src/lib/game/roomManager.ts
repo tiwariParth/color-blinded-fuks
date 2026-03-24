@@ -1,4 +1,4 @@
-import type { GameState, GameSettings, Player, ClientPlayer, CardColor } from '@/lib/types';
+import type { GameState, GameSettings, Player, ClientPlayer } from '@/lib/types';
 import { createDeck, shuffle, dealHands, getStartCard } from '@/lib/game/deck';
 
 const rooms = new Map<string, GameState>();
@@ -305,6 +305,33 @@ export function rematchGame(roomCode: string): { state: GameState | null; error?
 
   // Apply start card effects
   applyStartCardEffect(state, startCard);
+
+  return { state };
+}
+
+export function forceStopGame(roomCode: string, socketId: string): { state: GameState | null; error?: string } {
+  const state = rooms.get(roomCode);
+  if (!state) return { state: null, error: 'Room not found' };
+  if (state.phase !== 'playing' && state.phase !== 'color_pick') {
+    return { state: null, error: 'No game in progress' };
+  }
+  if (state.hostId !== socketId) return { state: null, error: 'Only the host can stop the game' };
+
+  // Remove bots, reset to lobby
+  state.players = state.players.filter((p) => p.type === 'human');
+  state.phase = 'waiting';
+  state.deck = [];
+  state.discardPile = [];
+  state.currentPlayerIndex = 0;
+  state.direction = 1;
+  state.pendingDrawCount = 0;
+  state.winner = null;
+  state.turnStartTime = null;
+  state.lastAction = '';
+  for (const p of state.players) {
+    p.hand = [];
+    p.saidUno = false;
+  }
 
   return { state };
 }

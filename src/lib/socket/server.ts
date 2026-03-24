@@ -16,6 +16,7 @@ import {
   getRoom,
   startGame,
   rematchGame,
+  forceStopGame,
 } from '@/lib/game/roomManager';
 import { canPlayCard, applyCardEffect, drawCards, checkWinCondition, nextPlayerIndex } from '@/lib/game/rules';
 import { toClientState } from '@/lib/game/sanitize';
@@ -29,6 +30,16 @@ type ColorPickGameState = ReturnType<typeof getRoom> & {
 
 // Track bot turn timeouts so we can cancel them if needed
 const botTimers = new Map<string, NodeJS.Timeout>();
+
+// Track active force-stop votes
+interface ForceStopVote {
+  initiator: string;
+  votes: Map<string, boolean>; // playerId → yes/no
+  totalHumans: number;
+  endsAt: number;
+  timer: NodeJS.Timeout;
+}
+const activeVotes = new Map<string, ForceStopVote>();
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -108,6 +119,31 @@ function cancelBotTimer(roomCode: string) {
   if (timer) {
     clearTimeout(timer);
     botTimers.delete(roomCode);
+  }
+}
+
+function resolveVote(io: IO, roomCode: string) {
+  const voteState = activeVotes.get(roomCode);
+  if (!voteState) return;
+  activeVotes.delete(roomCode);
+
+  let yes = 0, no = 0;
+  for (const v of voteState.votes.values()) {
+    if (v) yes++; else no++;
+  }
+
+  // Non-voters count as "no"
+  const passed = yes > voteState.totalHumans / 2;
+
+  io.to(roomCode).emit('FORCE_STOP_VOTE_RESULT', { passed });
+
+  if (passed) {
+    const { state, error } = forceStopGame(roomCode, voteState.initiator);
+    if (!error && state) {
+      cancelBotTimer(roomCode);
+      io.to(roomCode).emit('FORCE_STOPPED');
+      emitLobbyUpdate(io, roomCode);
+    }
   }
 }
 
@@ -391,7 +427,7 @@ export function setupSocketHandlers(io: IO) {
 
       // Remove card from hand
       player.hand.splice(cardIndex, 1);
-      player.saidUno = false;
+      if (player.hand.length > 1) player.saidUno = false;
 
       // Check win
       if (player.hand.length === 0) {
@@ -430,7 +466,7 @@ export function setupSocketHandlers(io: IO) {
       player.hand.splice(cardIndex, 1);
       delete colorPickState._pendingWildCardId;
       state.phase = 'playing';
-      player.saidUno = false;
+      if (player.hand.length > 1) player.saidUno = false;
 
       if (player.hand.length === 0) {
         state.discardPile.push(card);
@@ -579,6 +615,113 @@ export function setupSocketHandlers(io: IO) {
         });
       } else {
         scheduleBotTurnIfNeeded(io, roomCode);
+      }
+    });
+
+    // ── Chat ─────────────────────────────────────────────────────────
+
+    socket.on('SEND_MESSAGE', ({ message }) => {
+      const roomCode = getRoomCodeBySocketId(socket.id);
+      if (!roomCode) return;
+      const state = getRoom(roomCode);
+      if (!state) return;
+
+      const player = state.players.find((p) => p.id === socket.id);
+      if (!player) return;
+
+      const trimmed = message.trim().slice(0, 200);
+      if (!trimmed) return;
+
+      io.to(roomCode).emit('CHAT_MESSAGE', {
+        playerId: socket.id,
+        playerName: player.name,
+        message: trimmed,
+        timestamp: Date.now(),
+      });
+    });
+
+    // ── Force Stop ────────────────────────────────────────────────────
+
+    socket.on('FORCE_STOP', () => {
+      const roomCode = getRoomCodeBySocketId(socket.id);
+      if (!roomCode) return;
+      const state = getRoom(roomCode);
+      if (!state) return;
+      if (state.hostId !== socket.id) {
+        socket.emit('ROOM_ERROR', { message: 'Only the host can stop the game' });
+        return;
+      }
+      if (state.phase !== 'playing' && state.phase !== 'color_pick') {
+        socket.emit('ROOM_ERROR', { message: 'No game in progress' });
+        return;
+      }
+
+      // If vote already running, ignore
+      if (activeVotes.has(roomCode)) return;
+
+      const humanCount = state.players.filter((p) => p.type === 'human').length;
+
+      // Solo with bots — stop immediately
+      if (humanCount <= 1) {
+        const { state: stopped, error } = forceStopGame(roomCode, socket.id);
+        if (error || !stopped) {
+          socket.emit('ROOM_ERROR', { message: error || 'Failed to stop game' });
+          return;
+        }
+        cancelBotTimer(roomCode);
+        io.to(roomCode).emit('FORCE_STOPPED');
+        emitLobbyUpdate(io, roomCode);
+        return;
+      }
+
+      // Multiplayer — start a vote
+      const endsAt = Date.now() + 10_000;
+      const votes = new Map<string, boolean>();
+      votes.set(socket.id, true); // Host votes yes automatically
+
+      const timer = setTimeout(() => resolveVote(io, roomCode), 10_000);
+
+      activeVotes.set(roomCode, {
+        initiator: socket.id,
+        votes,
+        totalHumans: humanCount,
+        endsAt,
+        timer,
+      });
+
+      const initiatorName = state.players.find((p) => p.id === socket.id)?.name || 'Host';
+      io.to(roomCode).emit('FORCE_STOP_VOTE_STARTED', { initiator: initiatorName, endsAt });
+      io.to(roomCode).emit('FORCE_STOP_VOTE_UPDATE', { yes: 1, no: 0, total: humanCount, endsAt });
+    });
+
+    socket.on('FORCE_STOP_VOTE', ({ vote }) => {
+      const roomCode = getRoomCodeBySocketId(socket.id);
+      if (!roomCode) return;
+      const voteState = activeVotes.get(roomCode);
+      if (!voteState) return;
+
+      // Only humans who haven't voted yet
+      if (voteState.votes.has(socket.id)) return;
+      const state = getRoom(roomCode);
+      if (!state) return;
+      const player = state.players.find((p) => p.id === socket.id);
+      if (!player || player.type !== 'human') return;
+
+      voteState.votes.set(socket.id, vote);
+
+      let yes = 0, no = 0;
+      for (const v of voteState.votes.values()) {
+        if (v) yes++; else no++;
+      }
+
+      io.to(roomCode).emit('FORCE_STOP_VOTE_UPDATE', {
+        yes, no, total: voteState.totalHumans, endsAt: voteState.endsAt,
+      });
+
+      // All voted — resolve early
+      if (voteState.votes.size >= voteState.totalHumans) {
+        clearTimeout(voteState.timer);
+        resolveVote(io, roomCode);
       }
     });
 

@@ -13,8 +13,8 @@ import { UnoButton } from '@/components/game/UnoButton';
 import type { CardColor, UnoCard } from '@/lib/types';
 
 export function GameBoard() {
-  const { socket } = useSocket();
-  const { gameState, myHand, playerId } = useGameStore();
+  const { socket, forceStop } = useSocket();
+  const { gameState, myHand, playerId, hostId } = useGameStore();
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [pendingWildCardId, setPendingWildCardId] = useState<string | null>(null);
 
@@ -116,12 +116,26 @@ export function GameBoard() {
     [socket]
   );
 
+  const isHost = playerId === hostId;
+
   if (!gameState) return null;
 
   const canDraw = isMyTurn && gameState.phase === 'playing';
 
   return (
     <div className="flex flex-1 flex-col">
+      {/* Top bar with force stop */}
+      {isHost && (
+        <div className="flex justify-end px-3 pt-2">
+          <button
+            onClick={forceStop}
+            className="rounded-lg border border-red-800 bg-red-950/50 px-3 py-1 text-xs font-medium text-red-400 transition-colors hover:bg-red-900/50"
+          >
+            End Match
+          </button>
+        </div>
+      )}
+
       {/* Opponents row */}
       <div className="flex items-start justify-center gap-3 p-3 flex-wrap">
         {opponents.map((player) => (

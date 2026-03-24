@@ -56,6 +56,12 @@ export function useSocket() {
       setGameState(state);
     });
 
+    socket.on('FORCE_STOPPED', () => {
+      // Game was force-stopped — reset to lobby state
+      useGameStore.getState().clearRoundResult();
+      useGameStore.setState({ phase: 'waiting', gameState: null, myHand: [] });
+    });
+
     return () => {
       // Don't disconnect — socket persists across navigations
     };
@@ -96,6 +102,10 @@ export function useSocket() {
     socket.emit('REQUEST_REMATCH');
   }, [socket]);
 
+  const forceStop = useCallback(() => {
+    socket.emit('FORCE_STOP');
+  }, [socket]);
+
   return {
     socket,
     createRoom,
@@ -104,5 +114,6 @@ export function useSocket() {
     leaveRoom,
     startGame,
     requestRematch,
+    forceStop,
   };
 }

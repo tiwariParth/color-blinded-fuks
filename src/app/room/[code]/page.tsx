@@ -7,6 +7,8 @@ import { useSocket } from '@/hooks/useSocket';
 import { LobbyRoom } from '@/components/lobby/LobbyRoom';
 import { GameBoard } from '@/components/game/GameBoard';
 import { GameOver } from '@/components/game/GameOver';
+import { ChatBox } from '@/components/game/ChatBox';
+import { VoteOverlay } from '@/components/game/VoteOverlay';
 
 export default function RoomPage({
   params,
@@ -33,13 +35,29 @@ export default function RoomPage({
   }
 
   if (phase === 'waiting') {
-    return <LobbyRoom />;
+    return (
+      <>
+        <LobbyRoom />
+        <ChatBox />
+      </>
+    );
   }
 
   if (phase === 'finished') {
-    return <GameOver />;
+    return (
+      <>
+        <GameOver />
+        <ChatBox />
+      </>
+    );
   }
 
   // playing or color_pick
-  return <GameBoard />;
+  return (
+    <>
+      <GameBoard />
+      <ChatBox />
+      <VoteOverlay />
+    </>
+  );
 }

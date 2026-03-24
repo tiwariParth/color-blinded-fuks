@@ -109,7 +109,9 @@ export interface ClientToServerEvents {
   LEAVE_ROOM: () => void;
   REQUEST_REMATCH: () => void;
   FORCE_STOP: () => void;
+  FORCE_STOP_VOTE: (data: { vote: boolean }) => void;
   RECONNECT: (data: { sessionId: string; roomCode: string }) => void;
+  SEND_MESSAGE: (data: { message: string }) => void;
 }
 
 export interface ServerToClientEvents {
@@ -133,7 +135,11 @@ export interface ServerToClientEvents {
   TIMER_TICK: (data: { remaining: number }) => void;
   TIMER_EXPIRED: (data: { playerId: string }) => void;
   FORCE_STOPPED: () => void;
+  FORCE_STOP_VOTE_STARTED: (data: { initiator: string; endsAt: number }) => void;
+  FORCE_STOP_VOTE_UPDATE: (data: { yes: number; no: number; total: number; endsAt: number }) => void;
+  FORCE_STOP_VOTE_RESULT: (data: { passed: boolean }) => void;
   RECONNECTED: (data: { roomCode: string; playerId: string; state: ClientGameState }) => void;
+  CHAT_MESSAGE: (data: { playerId: string; playerName: string; message: string; timestamp: number }) => void;
 }
 
 export type InterServerEvents = Record<string, never>;
