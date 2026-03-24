@@ -136,7 +136,7 @@ export interface ServerToClientEvents {
   RECONNECTED: (data: { roomCode: string; playerId: string; state: ClientGameState }) => void;
 }
 
-export interface InterServerEvents {}
+export type InterServerEvents = Record<string, never>;
 
 export interface SocketData {
   roomCode: string;

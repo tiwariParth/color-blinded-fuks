@@ -2,13 +2,29 @@ import { createServer } from 'http';
 import next from 'next';
 import { Server as SocketIOServer } from 'socket.io';
 import { setupSocketHandlers } from './src/lib/socket/server.js';
+import type {
+  ClientToServerEvents,
+  ServerToClientEvents,
+  InterServerEvents,
+  SocketData,
+} from './src/lib/types.js';
 
 const dev = process.env.NODE_ENV !== 'production';
 const port = parseInt(process.env.PORT || '3000', 10);
+const corsOrigin = process.env.SOCKET_CORS_ORIGIN;
 
 const httpServer = createServer();
-const io = new SocketIOServer(httpServer, {
-  cors: dev ? { origin: '*' } : undefined,
+const io = new SocketIOServer<
+  ClientToServerEvents,
+  ServerToClientEvents,
+  InterServerEvents,
+  SocketData
+>(httpServer, {
+  cors: dev
+    ? { origin: '*' }
+    : corsOrigin
+      ? { origin: corsOrigin, credentials: true }
+      : undefined,
 });
 
 const app = next({ dev, httpServer });

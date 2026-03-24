@@ -23,6 +23,10 @@ import { chooseBotCard, chooseBotColor, getBotDelay, shouldBotSayUno } from '@/l
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
 
+type ColorPickGameState = ReturnType<typeof getRoom> & {
+  _pendingWildCardId?: string;
+};
+
 // Track bot turn timeouts so we can cancel them if needed
 const botTimers = new Map<string, NodeJS.Timeout>();
 
@@ -258,7 +262,7 @@ export function setupSocketHandlers(io: IO) {
         return;
       }
 
-      const state = createRoom(socket.id, playerName.trim(), settings);
+      const { state } = createRoom(socket.id, playerName.trim(), settings);
       socket.join(state.roomCode);
 
       socket.emit('ROOM_CREATED', {
@@ -379,7 +383,8 @@ export function setupSocketHandlers(io: IO) {
       if (card.isWild && !chosenColor) {
         socket.emit('CHOOSE_COLOR_PROMPT');
         state.phase = 'color_pick';
-        (state as any)._pendingWildCardId = cardId;
+        const colorPickState = state as ColorPickGameState;
+        colorPickState._pendingWildCardId = cardId;
         emitGameStateToAll(io, roomCode);
         return;
       }
@@ -413,16 +418,17 @@ export function setupSocketHandlers(io: IO) {
       const playerIndex = state.players.findIndex((p) => p.id === socket.id);
       if (playerIndex === -1 || playerIndex !== state.currentPlayerIndex) return;
 
-      const pendingCardId = (state as any)._pendingWildCardId;
+      const colorPickState = state as ColorPickGameState;
+      const pendingCardId = colorPickState._pendingWildCardId;
       if (!pendingCardId) return;
 
       const player = state.players[playerIndex];
-      const cardIndex = player.hand.findIndex((c: any) => c.id === pendingCardId);
+      const cardIndex = player.hand.findIndex((c) => c.id === pendingCardId);
       if (cardIndex === -1) return;
 
       const card = player.hand[cardIndex];
       player.hand.splice(cardIndex, 1);
-      delete (state as any)._pendingWildCardId;
+      delete colorPickState._pendingWildCardId;
       state.phase = 'playing';
       player.saidUno = false;
 
