@@ -11,7 +11,18 @@ import type {
 
 const dev = process.env.NODE_ENV !== 'production';
 const port = parseInt(process.env.PORT || '3000', 10);
-const corsOrigin = process.env.SOCKET_CORS_ORIGIN;
+const configuredCorsOrigins = (process.env.SOCKET_CORS_ORIGIN || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const allowVercelPreviews = process.env.SOCKET_CORS_ALLOW_VERCEL_PREVIEWS === 'true';
+
+function isAllowedOrigin(origin?: string): boolean {
+  if (!origin) return true;
+  if (configuredCorsOrigins.includes(origin)) return true;
+  if (allowVercelPreviews && /^https:\/\/.*\.vercel\.app$/.test(origin)) return true;
+  return false;
+}
 
 const httpServer = createServer();
 const io = new SocketIOServer<
@@ -22,9 +33,12 @@ const io = new SocketIOServer<
 >(httpServer, {
   cors: dev
     ? { origin: '*' }
-    : corsOrigin
-      ? { origin: corsOrigin, credentials: true }
-      : undefined,
+    : {
+        origin: (origin, callback) => {
+          callback(isAllowedOrigin(origin) ? null : new Error('Not allowed by CORS'), true);
+        },
+        credentials: true,
+      },
 });
 
 const app = next({ dev, httpServer });
