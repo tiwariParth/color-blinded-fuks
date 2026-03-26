@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import type { UnoCard as UnoCardType, CardColor } from '@/lib/types';
 import { UnoCard } from '@/components/cards/UnoCard';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 const COLOR_GLOW: Record<string, string> = {
   red: '0 0 30px 8px rgba(224,58,42,0.35)',
@@ -26,18 +27,21 @@ interface DiscardPileProps {
 }
 
 export function DiscardPile({ topCard, currentColor }: DiscardPileProps) {
+  const isMobile = useIsMobile();
+  const cardSize = isMobile ? 'md' as const : 'lg' as const;
+
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-1.5 sm:gap-3">
       <div
         className="relative rounded-xl transition-all duration-500"
         style={{ boxShadow: COLOR_GLOW[currentColor] || COLOR_GLOW.wild }}
       >
         {/* Shadow pile layers */}
-        <div className="absolute top-1.5 left-1.5 opacity-15 blur-[1px]">
-          {topCard && <UnoCard card={topCard} playable={false} size="lg" />}
+        <div className="absolute top-1 left-1 sm:top-1.5 sm:left-1.5 opacity-15 blur-[1px]">
+          {topCard && <UnoCard card={topCard} playable={false} size={cardSize} />}
         </div>
         <div className="absolute top-0.5 left-0.5 opacity-25">
-          {topCard && <UnoCard card={topCard} playable={false} size="lg" />}
+          {topCard && <UnoCard card={topCard} playable={false} size={cardSize} />}
         </div>
 
         {/* Top card */}
@@ -50,11 +54,11 @@ export function DiscardPile({ topCard, currentColor }: DiscardPileProps) {
               transition={{ duration: 0.2 }}
               className="relative"
             >
-              <UnoCard card={topCard} playable={false} size="lg" />
+              <UnoCard card={topCard} playable={false} size={cardSize} />
             </motion.div>
           ) : (
-            <div className="flex h-[120px] w-[84px] items-center justify-center rounded-lg border border-dashed border-zinc-600/30">
-              <span className="text-zinc-700 text-xs">Discard</span>
+            <div className="flex h-[100px] w-[70px] sm:h-[120px] sm:w-[84px] items-center justify-center rounded-lg border border-dashed border-zinc-600/30">
+              <span className="text-zinc-700 text-[10px] sm:text-xs">Discard</span>
             </div>
           )}
         </AnimatePresence>
@@ -63,13 +67,13 @@ export function DiscardPile({ topCard, currentColor }: DiscardPileProps) {
       {/* Current color dot */}
       <div className="flex items-center gap-1.5">
         <div
-          className="h-3 w-3 rounded-full transition-colors duration-500"
+          className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full transition-colors duration-500"
           style={{
             backgroundColor: COLOR_BG[currentColor] || COLOR_BG.wild,
             boxShadow: `0 0 8px ${COLOR_BG[currentColor] || COLOR_BG.wild}88`,
           }}
         />
-        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+        <span className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-zinc-500">
           {currentColor}
         </span>
       </div>

@@ -31,5 +31,6 @@ export function toClientState(state: GameState, socketId: string): ClientGameSta
     myHand: myPlayer?.hand || [],
     cumulativeScores: state.cumulativeScores,
     roundNumber: state.roundNumber,
+    logs: state.logs,
   };
 }

@@ -105,6 +105,15 @@ export function GameBoard() {
     (targetPlayerId: string) => { socket.emit('CHALLENGE_UNO', { targetPlayerId }); },
     [socket]
   );
+  const handleSwapTarget = useCallback(
+    (targetPlayerId: string) => { socket.emit('CHOOSE_SWAP_TARGET', { targetPlayerId }); },
+    [socket]
+  );
+
+  const showSwapPicker = useMemo(() => {
+    if (!gameState || !playerId) return false;
+    return (gameState.phase as string) === 'swap_pick' && isMyTurn;
+  }, [gameState, playerId, isMyTurn]);
 
   const isHost = playerId === hostId;
 
@@ -116,21 +125,21 @@ export function GameBoard() {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* ── Top bar ── */}
-      <div className="flex items-center justify-between px-4 py-2 h-10">
-        <div className="flex items-center gap-2">
-          <span className={`rounded-lg bg-red-600/20 px-2.5 py-1 text-xs font-bold text-red-400 transition-opacity ${gameState.pendingDrawCount > 0 ? 'opacity-100' : 'opacity-0'}`}>
-            +{gameState.pendingDrawCount} pending
+      <div className="flex items-center justify-between px-2 sm:px-4 py-1.5 sm:py-2 h-8 sm:h-10">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span className={`rounded-lg bg-red-600/20 px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs font-bold text-red-400 transition-opacity ${gameState.pendingDrawCount > 0 ? 'opacity-100' : 'opacity-0'}`}>
+            +{gameState.pendingDrawCount}
           </span>
-          <span className={`rounded-lg bg-zinc-800/60 px-2.5 py-1 text-xs text-zinc-500 transition-opacity ${gameState.direction === -1 ? 'opacity-100' : 'opacity-0'}`}>
-            Reversed
+          <span className={`rounded-lg bg-zinc-800/60 px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs text-zinc-500 transition-opacity ${gameState.direction === -1 ? 'opacity-100' : 'opacity-0'}`}>
+            Rev
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <GameLog logs={gameState.logs ?? []} />
           {isHost && (
             <button
               onClick={forceStop}
-              className="rounded-lg border border-red-900/60 bg-red-950/30 px-3 py-1.5 text-xs text-red-400/80 transition-colors hover:bg-red-950/60 hover:text-red-300"
+              className="rounded-lg border border-red-900/60 bg-red-950/30 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-red-400/80 transition-colors hover:bg-red-950/60 hover:text-red-300"
             >
               End
             </button>
@@ -139,7 +148,7 @@ export function GameBoard() {
       </div>
 
       {/* ── Opponents ── */}
-      <div className="flex items-start justify-center gap-4 px-4 py-2 flex-wrap">
+      <div className="flex items-start justify-center gap-2 sm:gap-4 px-2 sm:px-4 py-1 sm:py-2 flex-wrap">
         {opponents.map((player) => (
           <PlayerSeat
             key={player.id}
@@ -154,7 +163,7 @@ export function GameBoard() {
 
       {/* ── Table surface ── */}
       <div
-        className="felt-bg relative mx-3 flex flex-1 items-center justify-center gap-12 rounded-2xl"
+        className="felt-bg relative mx-1.5 sm:mx-3 flex flex-1 items-center justify-center gap-4 sm:gap-12 rounded-xl sm:rounded-2xl"
         style={{
           boxShadow: `inset 0 0 80px 20px rgba(0,0,0,0.3), 0 0 80px ${ambientColor}`,
         }}
@@ -172,13 +181,13 @@ export function GameBoard() {
       </div>
 
       {/* ── Status bar ── */}
-      <div className="flex items-center justify-between px-4 py-2 h-10">
-        <span className="truncate text-xs text-zinc-500">
+      <div className="flex items-center justify-between px-2 sm:px-4 py-1 sm:py-2 h-8 sm:h-10">
+        <span className="truncate text-[10px] sm:text-xs text-zinc-500">
           {gameState.lastAction || '\u00A0'}
         </span>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <span
-            className={`rounded-full bg-yellow-500/15 px-3 py-1 text-xs font-semibold text-yellow-400 transition-opacity duration-200 ${
+            className={`rounded-full bg-yellow-500/15 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold text-yellow-400 transition-opacity duration-200 ${
               isMyTurn && gameState.phase === 'playing' ? 'opacity-100' : 'opacity-0'
             }`}
           >
@@ -191,7 +200,7 @@ export function GameBoard() {
       </div>
 
       {/* ── Your hand ── */}
-      <div className="relative border-t border-zinc-800/60 bg-gradient-to-t from-zinc-950 via-zinc-900/95 to-transparent px-2">
+      <div className="relative border-t border-zinc-800/60 bg-gradient-to-t from-zinc-950 via-zinc-900/95 to-transparent px-0.5 sm:px-2">
         <CardHand
           cards={myHand}
           playableCardIds={playableCardIds}
@@ -204,6 +213,30 @@ export function GameBoard() {
       <AnimatePresence>
         {showColorPicker && <ColorPicker onChoose={handleChooseColor} />}
       </AnimatePresence>
+
+      {/* Swap picker for Trade Hands */}
+      {showSwapPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="mx-3 sm:mx-4 w-full max-w-[92vw] sm:max-w-sm rounded-xl sm:rounded-2xl border border-purple-500/30 bg-zinc-900/95 p-4 sm:p-6 shadow-2xl">
+            <h3 className="mb-1 text-center text-base sm:text-lg font-bold text-purple-300">Trade Hands</h3>
+            <p className="mb-3 sm:mb-4 text-center text-[10px] sm:text-xs text-zinc-400">Pick a player to swap hands with</p>
+            <div className="flex flex-col gap-1.5 sm:gap-2">
+              {opponents.map((player) => (
+                <button
+                  key={player.id}
+                  onClick={() => handleSwapTarget(player.id)}
+                  className="flex items-center justify-between rounded-lg sm:rounded-xl border border-zinc-700/60 bg-zinc-800/80 px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-zinc-200 transition-colors hover:border-purple-500/50 hover:bg-purple-950/40"
+                >
+                  <span className="font-medium">{player.name}</span>
+                  <span className="rounded-full bg-zinc-700/60 px-2 py-0.5 text-[10px] sm:text-xs text-zinc-400">
+                    {player.handSize} cards
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

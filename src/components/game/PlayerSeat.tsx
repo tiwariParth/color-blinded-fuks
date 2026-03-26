@@ -1,6 +1,6 @@
 'use client';
 
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { ClientPlayer } from '@/lib/types';
 import { UnoButton } from '@/components/game/UnoButton';
 
@@ -22,7 +22,7 @@ export function PlayerSeat({ player, isCurrentTurn, isYou, canCatch, onCatch }: 
 
   return (
     <div
-      className={`relative flex flex-col items-center gap-1.5 rounded-xl px-4 py-2.5 transition-all duration-300 ${
+      className={`relative flex flex-col items-center gap-1 sm:gap-1.5 rounded-lg sm:rounded-xl px-2 sm:px-4 py-1.5 sm:py-2.5 transition-all duration-300 ${
         isCurrentTurn
           ? 'turn-ring bg-yellow-400/8'
           : 'bg-zinc-800/20'
@@ -31,23 +31,46 @@ export function PlayerSeat({ player, isCurrentTurn, isYou, canCatch, onCatch }: 
     >
       {/* Avatar */}
       <div
-        className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white"
+        className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-full text-[10px] sm:text-sm font-bold text-white"
         style={{ backgroundColor: avatarColor, boxShadow: `0 0 10px ${avatarColor}44` }}
       >
         {player.type === 'bot' ? '~' : initial}
       </div>
 
       {/* Name */}
-      <span className="max-w-[72px] truncate text-xs font-medium text-zinc-300">
+      <span className="max-w-[52px] sm:max-w-[72px] truncate text-[10px] sm:text-xs font-medium text-zinc-300">
         {player.name}
       </span>
 
-      {/* Card count pill */}
-      <div className="flex items-center gap-1 rounded-full bg-zinc-800/60 px-2 py-0.5">
-        <span className="text-[10px] font-mono text-zinc-400">{player.handSize}</span>
-        <svg width="10" height="14" viewBox="0 0 70 100" className="opacity-40">
-          <rect width="70" height="100" rx="10" fill="#888" />
-        </svg>
+      {/* Mini card fan */}
+      <div className="relative flex items-center justify-center" style={{ height: 28, width: Math.min(player.handSize * 5 + 18, 64) }}>
+        {Array.from({ length: Math.min(player.handSize, 8) }).map((_, i, arr) => {
+          const count = arr.length;
+          const mid = (count - 1) / 2;
+          const angle = (i - mid) * 5;
+          const offsetX = (i - mid) * 4;
+          return (
+            <svg
+              key={i}
+              width="16"
+              height="24"
+              viewBox="0 0 70 100"
+              className="absolute select-none"
+              style={{
+                transform: `translateX(${offsetX}px) rotate(${angle}deg)`,
+                transformOrigin: 'center bottom',
+                zIndex: i,
+              }}
+            >
+              <rect width="70" height="100" rx="8" fill="#1a1a2e" stroke="#333" strokeWidth="2" />
+              <rect x="5" y="5" width="60" height="90" rx="5" fill="none" stroke="#e03a2a" strokeWidth="3" />
+              <ellipse cx="35" cy="50" rx="18" ry="26" fill="#e03a2a" transform="rotate(-15, 35, 50)" />
+            </svg>
+          );
+        })}
+        <span className="absolute -bottom-1 right-0 rounded-full bg-zinc-900/90 px-1 sm:px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold text-zinc-300 ring-1 ring-zinc-700/60" style={{ zIndex: 20 }}>
+          {player.handSize}
+        </span>
       </div>
 
       {/* UNO badge */}

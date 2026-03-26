@@ -63,6 +63,17 @@ export function createDeck(): UnoCard[] {
     });
   }
 
+  // 1 of each chaos/power card (all wild)
+  const CHAOS_CARDS: CardValue[] = ['trade_hands', 'hand_bomb', 'reverse_roulette', 'freeze', 'tax_winner'];
+  for (const value of CHAOS_CARDS) {
+    cards.push({
+      id: `chaos_${value}_${idCounter++}`,
+      color: 'wild',
+      value,
+      isWild: true,
+    });
+  }
+
   return cards;
 }
 
@@ -94,8 +105,8 @@ export function getStartCard(deck: UnoCard[]): { card: UnoCard; remaining: UnoCa
   const remaining = [...deck];
 
   let idx = 0;
-  // The first discard card must not be a Wild Draw Four
-  while (remaining[idx].value === 'wild_draw4') {
+  // The first discard card must not be a Wild Draw Four or chaos card
+  while (remaining[idx].isWild) {
     idx++;
   }
 

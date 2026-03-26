@@ -35,7 +35,7 @@ export function GameOver() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative z-10 w-full max-w-sm space-y-6 text-center"
+        className="relative z-10 w-full max-w-[92vw] sm:max-w-sm space-y-4 sm:space-y-6 text-center"
       >
         {/* Trophy */}
         <motion.div
@@ -44,7 +44,7 @@ export function GameOver() {
           transition={{ type: 'spring', stiffness: 300, damping: 15, delay: 0.1 }}
         >
           <div
-            className="mx-auto flex h-20 w-20 items-center justify-center rounded-full text-4xl"
+            className="mx-auto flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full text-3xl sm:text-4xl"
             style={{
               background: 'linear-gradient(135deg, rgba(245,200,0,0.15) 0%, rgba(245,200,0,0.05) 100%)',
               boxShadow: '0 0 40px rgba(245,200,0,0.15)',
@@ -76,11 +76,11 @@ export function GameOver() {
           className="rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-2 pb-2 text-[10px] uppercase tracking-wider text-zinc-600">
+          <div className="flex items-center justify-between px-2 pb-2 text-[9px] sm:text-[10px] uppercase tracking-wider text-zinc-600">
             <span>Player</span>
-            <div className="flex gap-6">
-              <span className="w-12 text-right">Round</span>
-              <span className="w-12 text-right">Total</span>
+            <div className="flex gap-3 sm:gap-6">
+              <span className="w-9 sm:w-12 text-right">Round</span>
+              <span className="w-9 sm:w-12 text-right">Total</span>
             </div>
           </div>
 
@@ -105,11 +105,11 @@ export function GameOver() {
                     {player.name}
                   </span>
                 </div>
-                <div className="flex gap-6">
-                  <span className="w-12 text-right text-xs text-zinc-600">
+                <div className="flex gap-3 sm:gap-6">
+                  <span className="w-9 sm:w-12 text-right text-[11px] sm:text-xs text-zinc-600">
                     +{scores?.[player.id] ?? 0}
                   </span>
-                  <span className={`w-12 text-right text-xs font-semibold ${player.id === winnerId ? 'text-yellow-400' : 'text-zinc-300'}`}>
+                  <span className={`w-9 sm:w-12 text-right text-[11px] sm:text-xs font-semibold ${player.id === winnerId ? 'text-yellow-400' : 'text-zinc-300'}`}>
                     {cumulativeScores[player.id] ?? 0}
                   </span>
                 </div>

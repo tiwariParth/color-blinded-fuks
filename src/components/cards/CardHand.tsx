@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import type { UnoCard as UnoCardType } from '@/lib/types';
 import { UnoCard } from '@/components/cards/UnoCard';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface CardHandProps {
   cards: UnoCardType[];
@@ -12,20 +13,24 @@ interface CardHandProps {
 }
 
 export function CardHand({ cards, playableCardIds, onPlayCard, isMyTurn }: CardHandProps) {
+  const isMobile = useIsMobile();
   const count = cards.length;
-  // Fan arc: more cards → tighter spread
-  const maxSpread = Math.min(count * 3, 30);
-  const overlapPx = count > 8 ? -16 : count > 5 ? -10 : -4;
+  // Fan arc: more cards → tighter spread; tighter on mobile
+  const maxSpread = isMobile ? Math.min(count * 2, 20) : Math.min(count * 3, 30);
+  const overlapPx = isMobile
+    ? (count > 8 ? -26 : count > 5 ? -20 : -12)
+    : (count > 8 ? -16 : count > 5 ? -10 : -4);
+  const cardSize = isMobile ? 'sm' as const : 'md' as const;
 
   return (
-    <div className="flex items-end justify-center py-4 px-2 overflow-x-auto">
+    <div className="flex items-end justify-center py-2 sm:py-4 px-1 sm:px-2 overflow-x-auto">
       <AnimatePresence>
         {cards.map((card, index) => {
           const isPlayable = isMyTurn && playableCardIds.has(card.id);
           const mid = (count - 1) / 2;
           const offset = index - mid;
           const rotate = count > 1 ? (offset / mid) * maxSpread : 0;
-          const arcY = Math.abs(offset) * (count > 5 ? 3 : 1.5);
+          const arcY = Math.abs(offset) * (count > 5 ? (isMobile ? 2 : 3) : 1.5);
 
           return (
             <motion.div
@@ -37,7 +42,7 @@ export function CardHand({ cards, playableCardIds, onPlayCard, isMyTurn }: CardH
                 rotate,
               }}
               exit={{ y: -80, opacity: 0 }}
-              whileHover={isPlayable ? { y: -24, scale: 1.12, rotate: 0, zIndex: 50 } : {}}
+              whileHover={isPlayable ? { y: isMobile ? -16 : -24, scale: 1.12, rotate: 0, zIndex: 50 } : {}}
               transition={{ type: 'spring', stiffness: 300, damping: 26 }}
               className="relative"
               style={{
@@ -59,7 +64,7 @@ export function CardHand({ cards, playableCardIds, onPlayCard, isMyTurn }: CardH
                 card={card}
                 playable={isPlayable}
                 onClick={isPlayable ? () => onPlayCard(card.id) : undefined}
-                size="md"
+                size={cardSize}
               />
             </motion.div>
           );

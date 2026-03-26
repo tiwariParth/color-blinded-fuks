@@ -32,7 +32,7 @@ export function ColorPicker({ onChoose }: ColorPickerProps) {
           Pick a color
         </span>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {COLORS.map(({ color, bg, glow }, i) => (
             <motion.button
               key={color}
@@ -45,7 +45,7 @@ export function ColorPicker({ onChoose }: ColorPickerProps) {
                 damping: 18,
               }}
               onClick={() => onChoose(color)}
-              className="h-20 w-20 rounded-2xl transition-transform"
+              className="h-16 w-16 sm:h-20 sm:w-20 rounded-xl sm:rounded-2xl transition-transform"
               style={{
                 backgroundColor: bg,
                 boxShadow: `0 0 24px 4px ${glow}, inset 0 2px 4px rgba(255,255,255,0.2)`,

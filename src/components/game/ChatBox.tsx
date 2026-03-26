@@ -50,7 +50,7 @@ export function ChatBox() {
   }, []);
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+    <div className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 z-50 flex flex-col items-end gap-2">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -58,10 +58,10 @@ export function ChatBox() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="flex w-72 flex-col rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl"
+            className="flex w-[calc(100vw-1rem)] max-w-72 flex-col rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl"
           >
             {/* Messages */}
-            <div className="flex h-64 flex-col gap-1 overflow-y-auto p-3 scrollbar-thin">
+            <div className="flex h-48 sm:h-64 flex-col gap-1 overflow-y-auto p-2 sm:p-3 scrollbar-thin">
               {messages.length === 0 && (
                 <p className="text-center text-xs text-zinc-600 mt-auto mb-auto">
                   No messages yet
@@ -120,7 +120,7 @@ export function ChatBox() {
       {/* Toggle button */}
       <button
         onClick={toggleOpen}
-        className="relative flex h-11 w-11 items-center justify-center rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 shadow-lg transition-colors hover:bg-zinc-700"
+        className="relative flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 shadow-lg transition-colors hover:bg-zinc-700"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />

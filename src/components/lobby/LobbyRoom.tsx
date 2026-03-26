@@ -16,11 +16,11 @@ export function LobbyRoom() {
   if (!roomCode || !settings) return null;
 
   return (
-    <div className="flex flex-1 items-start justify-center p-4 pt-10">
+    <div className="flex flex-1 items-start justify-center p-3 sm:p-4 pt-6 sm:pt-10">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg space-y-6"
+        className="w-full max-w-[95vw] sm:max-w-lg space-y-4 sm:space-y-6"
       >
         {/* Header */}
         <div className="text-center space-y-3">

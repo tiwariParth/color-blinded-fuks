@@ -17,6 +17,11 @@ function pushLog(state: GameState, type: LogEntryType, message: string) {
 function cardLabel(card: { value: string; color: string; isWild: boolean }, chosenColor?: string): string {
   if (card.value === 'wild') return `Wild (→ ${chosenColor || '?'})`;
   if (card.value === 'wild_draw4') return `Wild +4 (→ ${chosenColor || '?'})`;
+  if (card.value === 'trade_hands') return `Trade Hands (→ ${chosenColor || '?'})`;
+  if (card.value === 'hand_bomb') return `Hand Bomb (→ ${chosenColor || '?'})`;
+  if (card.value === 'reverse_roulette') return `Reverse Roulette (→ ${chosenColor || '?'})`;
+  if (card.value === 'freeze') return `Freeze (→ ${chosenColor || '?'})`;
+  if (card.value === 'tax_winner') return `Tax the Winner (→ ${chosenColor || '?'})`;
   const c = card.color.charAt(0).toUpperCase() + card.color.slice(1);
   const v = card.value === 'draw2' ? '+2' : card.value === 'skip' ? 'Skip' : card.value === 'reverse' ? 'Reverse' : card.value;
   return `${c} ${v}`;
@@ -169,6 +174,50 @@ function resolveVote(io: IO, roomCode: string) {
   }
 }
 
+function emitSwapPickPrompt(io: IO, roomCode: string) {
+  const state = getRoom(roomCode);
+  if (!state) return;
+
+  const currentPlayer = state.players[state.currentPlayerIndex];
+  if (!currentPlayer) return;
+
+  const others = state.players
+    .filter((p) => p.id !== currentPlayer.id)
+    .map((p) => ({ id: p.id, name: p.name, type: p.type, difficulty: p.difficulty, saidUno: p.saidUno, isConnected: p.isConnected, handSize: p.hand.length }));
+
+  if (currentPlayer.type === 'bot') {
+    // Bot picks the player with the fewest cards (steal the best hand)
+    const target = others.reduce((best, p) => (p.handSize < best.handSize ? p : best), others[0]);
+    executeSwap(io, roomCode, target.id);
+  } else {
+    io.to(currentPlayer.id).emit('CHOOSE_SWAP_PROMPT', { players: others });
+  }
+}
+
+function executeSwap(io: IO, roomCode: string, targetId: string) {
+  const state = getRoom(roomCode);
+  if (!state || (state.phase as string) !== 'swap_pick') return;
+
+  const currentPlayer = state.players[state.currentPlayerIndex];
+  const target = state.players.find((p) => p.id === targetId);
+  if (!currentPlayer || !target || target.id === currentPlayer.id) return;
+
+  // Swap hands
+  const temp = currentPlayer.hand;
+  currentPlayer.hand = target.hand;
+  target.hand = temp;
+
+  state.phase = 'playing';
+  state.lastAction = `${currentPlayer.name} swapped hands with ${target.name}!`;
+  pushLog(state, 'wild', `${currentPlayer.name} swapped hands with ${target.name}!`);
+
+  state.currentPlayerIndex = nextPlayerIndex(state.currentPlayerIndex, state.direction, state.players.length);
+  state.turnStartTime = Date.now();
+
+  emitGameStateToAll(io, roomCode);
+  scheduleBotTurnIfNeeded(io, roomCode);
+}
+
 function scheduleBotTurnIfNeeded(io: IO, roomCode: string) {
   const state = getRoom(roomCode);
   if (!state || state.phase !== 'playing') return;
@@ -239,7 +288,11 @@ function executeBotTurn(io: IO, roomCode: string) {
 
     state.turnStartTime = Date.now();
     emitGameStateToAll(io, roomCode);
-    scheduleBotTurnIfNeeded(io, roomCode);
+    if ((state.phase as string) === 'swap_pick') {
+      emitSwapPickPrompt(io, roomCode);
+    } else {
+      scheduleBotTurnIfNeeded(io, roomCode);
+    }
     return;
   }
 
@@ -315,7 +368,11 @@ function executeBotTurn(io: IO, roomCode: string) {
 
   state.turnStartTime = Date.now();
   emitGameStateToAll(io, roomCode);
-  scheduleBotTurnIfNeeded(io, roomCode);
+  if ((state.phase as string) === 'swap_pick') {
+    emitSwapPickPrompt(io, roomCode);
+  } else {
+    scheduleBotTurnIfNeeded(io, roomCode);
+  }
 }
 
 // ── Socket Handlers ─────────────────────────────────────────────────────────
@@ -477,8 +534,19 @@ export function setupSocketHandlers(io: IO) {
       applyCardEffect(state, card, chosenColor as CardColor | undefined);
       pushLog(state, cardLogType(card), `${player.name} played ${cardLabel(card, chosenColor)}`);
 
+      // Chaos card logs
+      if (card.value === 'hand_bomb' || card.value === 'reverse_roulette' || card.value === 'freeze' || card.value === 'tax_winner') {
+        pushLog(state, 'wild', state.lastAction);
+      }
+
       emitGameStateToAll(io, roomCode);
-      scheduleBotTurnIfNeeded(io, roomCode);
+
+      // Trade hands → need to pick a target
+      if ((state.phase as string) === 'swap_pick') {
+        emitSwapPickPrompt(io, roomCode);
+      } else {
+        scheduleBotTurnIfNeeded(io, roomCode);
+      }
     });
 
     socket.on('CHOOSE_COLOR', ({ color }) => {
@@ -516,8 +584,17 @@ export function setupSocketHandlers(io: IO) {
       applyCardEffect(state, card, color);
       pushLog(state, 'wild', `${player.name} played ${cardLabel(card, color)}`);
 
+      if (card.value === 'hand_bomb' || card.value === 'reverse_roulette' || card.value === 'freeze' || card.value === 'tax_winner') {
+        pushLog(state, 'wild', state.lastAction);
+      }
+
       emitGameStateToAll(io, roomCode);
-      scheduleBotTurnIfNeeded(io, roomCode);
+
+      if ((state.phase as string) === 'swap_pick') {
+        emitSwapPickPrompt(io, roomCode);
+      } else {
+        scheduleBotTurnIfNeeded(io, roomCode);
+      }
     });
 
     socket.on('DRAW_CARD', () => {
@@ -769,6 +846,18 @@ export function setupSocketHandlers(io: IO) {
     });
 
     // ── Disconnect ────────────────────────────────────────────────────
+
+    socket.on('CHOOSE_SWAP_TARGET', ({ targetPlayerId }) => {
+      const roomCode = getRoomCodeBySocketId(socket.id);
+      if (!roomCode) return;
+      const state = getRoom(roomCode);
+      if (!state || (state.phase as string) !== 'swap_pick') return;
+
+      const playerIndex = state.players.findIndex((p) => p.id === socket.id);
+      if (playerIndex === -1 || playerIndex !== state.currentPlayerIndex) return;
+
+      executeSwap(io, roomCode, targetPlayerId);
+    });
 
     socket.on('LEAVE_ROOM', () => {
       handleDisconnect(io, socket);

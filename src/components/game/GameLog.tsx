@@ -39,12 +39,12 @@ export function GameLog({ logs }: GameLogProps) {
       </button>
 
       {open && (
-        <div className="absolute bottom-full right-0 mb-2 w-64 rounded-xl border border-zinc-800/60 bg-zinc-950/95 shadow-2xl backdrop-blur-sm">
-          <div className="flex items-center justify-between border-b border-zinc-800/40 px-3 py-2">
+        <div className="absolute bottom-full right-0 mb-2 w-56 sm:w-64 max-w-[85vw] rounded-xl border border-zinc-800/60 bg-zinc-950/95 shadow-2xl backdrop-blur-sm">
+          <div className="flex items-center justify-between border-b border-zinc-800/40 px-2 sm:px-3 py-1.5 sm:py-2">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">Game Log</span>
             <button onClick={() => setOpen(false)} className="text-zinc-600 hover:text-zinc-400 text-xs">x</button>
           </div>
-          <div className="max-h-56 overflow-y-auto px-3 py-2 space-y-0.5">
+          <div className="max-h-44 sm:max-h-56 overflow-y-auto px-2 sm:px-3 py-2 space-y-0.5">
             {logs.length === 0 ? (
               <p className="text-[10px] text-zinc-700 text-center py-4">No actions yet</p>
             ) : (

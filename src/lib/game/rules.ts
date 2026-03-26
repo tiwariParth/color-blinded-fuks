@@ -133,6 +133,77 @@ export function applyCardEffect(
       break;
     }
 
+    case 'trade_hands': {
+      // Server will handle the swap after player picks target
+      // Don't advance turn — goes to swap_pick phase
+      state.phase = 'swap_pick';
+      state.lastAction = `is choosing who to swap hands with...`;
+      break;
+    }
+
+    case 'hand_bomb': {
+      // Next player takes half of current player's cards (rounded up)
+      const bomber = state.players[state.currentPlayerIndex];
+      const victimIdx = nextPlayerIndex(state.currentPlayerIndex, state.direction, playerCount);
+      const victim = state.players[victimIdx];
+      const count = Math.ceil(bomber.hand.length / 2);
+      const donated = bomber.hand.splice(0, count);
+      victim.hand.push(...donated);
+      state.currentPlayerIndex = nextPlayerIndex(victimIdx, state.direction, playerCount);
+      state.lastAction = `${bomber.name} bombed ${victim.name} with ${count} cards!`;
+      break;
+    }
+
+    case 'reverse_roulette': {
+      // Everyone passes their hand to the next player in REVERSE direction
+      const hands = state.players.map((p) => p.hand);
+      for (let i = 0; i < state.players.length; i++) {
+        const receiverIdx = ((i - state.direction) + state.players.length) % state.players.length;
+        state.players[i].hand = hands[receiverIdx];
+      }
+      state.currentPlayerIndex = nextPlayerIndex(
+        state.currentPlayerIndex,
+        state.direction,
+        playerCount
+      );
+      state.lastAction = `Reverse Roulette! All hands rotated!`;
+      break;
+    }
+
+    case 'freeze': {
+      // Skip next 2 players
+      let idx = state.currentPlayerIndex;
+      for (let i = 0; i < 3; i++) {
+        idx = nextPlayerIndex(idx, state.direction, playerCount);
+      }
+      state.currentPlayerIndex = idx;
+      state.lastAction = `Freeze! Next 2 players skipped!`;
+      break;
+    }
+
+    case 'tax_winner': {
+      // Player with fewest cards draws 3
+      let minCards = Infinity;
+      let targetIdx = -1;
+      for (let i = 0; i < state.players.length; i++) {
+        if (i === state.currentPlayerIndex) continue; // not the player who played it
+        if (state.players[i].hand.length < minCards) {
+          minCards = state.players[i].hand.length;
+          targetIdx = i;
+        }
+      }
+      if (targetIdx >= 0) {
+        drawCards(state, targetIdx, 3);
+        state.lastAction = `Tax the Winner! ${state.players[targetIdx].name} drew 3 cards!`;
+      }
+      state.currentPlayerIndex = nextPlayerIndex(
+        state.currentPlayerIndex,
+        state.direction,
+        playerCount
+      );
+      break;
+    }
+
     default: {
       // Number card — just advance turn
       state.currentPlayerIndex = nextPlayerIndex(

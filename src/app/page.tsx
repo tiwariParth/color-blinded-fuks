@@ -86,9 +86,9 @@ export default function Home() {
         className="relative z-10 w-full max-w-sm"
       >
         {/* UNO Logo */}
-        <div className="mb-10 text-center">
+        <div className="mb-6 sm:mb-10 text-center">
           <h1
-            className="text-7xl font-black tracking-tight"
+            className="text-5xl sm:text-7xl font-black tracking-tight"
             style={{
               textShadow: '0 0 60px rgba(224,58,42,0.3), 0 0 120px rgba(245,200,0,0.15)',
             }}
@@ -97,7 +97,7 @@ export default function Home() {
             <span style={{ color: 'var(--uno-yellow)' }}>N</span>
             <span style={{ color: 'var(--uno-green)' }}>O</span>
           </h1>
-          <p className="mt-1 text-xs font-medium uppercase tracking-[0.3em] text-zinc-500">
+          <p className="mt-1 text-[10px] sm:text-xs font-medium uppercase tracking-[0.3em] text-zinc-500">
             play with friends
           </p>
         </div>
@@ -125,7 +125,7 @@ export default function Home() {
         <button
           onClick={handleCreate}
           disabled={!name.trim() || mode === 'create'}
-          className="group relative mb-4 w-full overflow-hidden rounded-xl py-3.5 font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-40"
+          className="group relative mb-4 w-full overflow-hidden rounded-xl py-3 sm:py-3.5 font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-40"
           style={{
             background: 'linear-gradient(135deg, #E03A2A 0%, #c0281a 100%)',
           }}
@@ -149,7 +149,7 @@ export default function Home() {
             value={joinCode}
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
             placeholder="CODE"
-            className="w-32 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-3.5 text-center font-mono text-lg tracking-[0.2em] text-white placeholder-zinc-700 outline-none backdrop-blur-sm transition-all focus:border-zinc-600"
+            className="w-28 sm:w-32 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-3 sm:py-3.5 text-center font-mono text-base sm:text-lg tracking-[0.2em] text-white placeholder-zinc-700 outline-none backdrop-blur-sm transition-all focus:border-zinc-600"
           />
           <button
             onClick={handleJoin}

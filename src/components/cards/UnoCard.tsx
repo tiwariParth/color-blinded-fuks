@@ -8,6 +8,15 @@ const COLOR_MAP: Record<string, { bg: string; oval: string }> = {
   green: { bg: '#3DAA4F', oval: '#2A8A38' },
   blue: { bg: '#2A6DB5', oval: '#1A5295' },
   wild: { bg: '#1A1A1A', oval: '#333333' },
+  chaos: { bg: '#6B21A8', oval: '#581C87' },
+};
+
+const CHAOS_LABELS: Record<string, { symbol: string; label: string }> = {
+  trade_hands: { symbol: '⇄', label: 'SWAP' },
+  hand_bomb: { symbol: '✸', label: 'BOMB' },
+  reverse_roulette: { symbol: '↻', label: 'SPIN' },
+  freeze: { symbol: '❄', label: 'FREEZE' },
+  tax_winner: { symbol: '♛', label: 'TAX' },
 };
 
 function getDisplayValue(value: CardValue): string {
@@ -17,12 +26,16 @@ function getDisplayValue(value: CardValue): string {
     case 'draw2': return '+2';
     case 'wild': return '★';
     case 'wild_draw4': return '+4';
-    default: return value;
+    default: return CHAOS_LABELS[value]?.symbol ?? value;
   }
 }
 
+function isChaosCard(value: CardValue): boolean {
+  return value in CHAOS_LABELS;
+}
+
 function isActionCard(value: CardValue): boolean {
-  return ['skip', 'reverse', 'draw2', 'wild', 'wild_draw4'].includes(value);
+  return ['skip', 'reverse', 'draw2', 'wild', 'wild_draw4'].includes(value) || isChaosCard(value);
 }
 
 interface UnoCardProps {
@@ -33,8 +46,10 @@ interface UnoCardProps {
 }
 
 export function UnoCard({ card, playable = true, onClick, size = 'md' }: UnoCardProps) {
-  const colors = COLOR_MAP[card.color] || COLOR_MAP.wild;
+  const isChaos = isChaosCard(card.value);
+  const colors = isChaos ? COLOR_MAP.chaos : (COLOR_MAP[card.color] || COLOR_MAP.wild);
   const display = getDisplayValue(card.value);
+  const chaosLabel = CHAOS_LABELS[card.value]?.label;
   const isAction = isActionCard(card.value);
 
   const dimensions = {
@@ -113,10 +128,10 @@ export function UnoCard({ card, playable = true, onClick, size = 'md' }: UnoCard
       {/* Center value */}
       <text
         x="35"
-        y={card.isWild ? 54 : 56}
+        y={isChaos ? 46 : card.isWild ? 54 : 56}
         textAnchor="middle"
         dominantBaseline="middle"
-        fontSize={fontSize.center}
+        fontSize={isChaos ? fontSize.center * 0.9 : fontSize.center}
         fontWeight="bold"
         fill={card.isWild ? '#fff' : colors.bg}
         fontFamily="Arial, sans-serif"
@@ -125,6 +140,24 @@ export function UnoCard({ card, playable = true, onClick, size = 'md' }: UnoCard
       >
         {display}
       </text>
+
+      {/* Chaos card label */}
+      {chaosLabel && (
+        <text
+          x="35"
+          y="62"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize="7"
+          fontWeight="bold"
+          fill="#fff"
+          fontFamily="Arial, sans-serif"
+          letterSpacing="1"
+          opacity="0.9"
+        >
+          {chaosLabel}
+        </text>
+      )}
 
       {/* Top-left corner value */}
       <text
