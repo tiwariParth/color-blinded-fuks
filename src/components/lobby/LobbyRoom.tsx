@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { useSocket } from '@/hooks/useSocket';
 import { useGameStore } from '@/hooks/useGameState';
 import { RoomCodeDisplay } from '@/components/ui/RoomCodeDisplay';
@@ -15,22 +16,31 @@ export function LobbyRoom() {
   if (!roomCode || !settings) return null;
 
   return (
-    <div className="flex flex-1 items-start justify-center p-4 pt-12">
-      <div className="w-full max-w-lg space-y-6">
+    <div className="flex flex-1 items-start justify-center p-4 pt-10">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-lg space-y-6"
+      >
         {/* Header */}
         <div className="text-center space-y-3">
-          <h2 className="text-xl font-semibold text-zinc-300">Room Lobby</h2>
+          <p className="text-xs font-medium uppercase tracking-[0.25em] text-zinc-500">
+            Room Lobby
+          </p>
           <RoomCodeDisplay code={roomCode} />
         </div>
 
         {/* Players */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">
-              Players ({players.length}/{settings.maxPlayers})
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              Players
             </h3>
+            <span className="text-xs text-zinc-600">
+              {players.length}/{settings.maxPlayers}
+            </span>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {players.map((player, i) => (
               <PlayerSlot
                 key={player.id}
@@ -40,19 +50,18 @@ export function LobbyRoom() {
                 isYou={player.id === playerId}
               />
             ))}
-            {/* Empty slots */}
             {Array.from(
               { length: settings.maxPlayers - players.length },
               (_, i) => (
                 <div
                   key={`empty-${i}`}
-                  className="flex items-center gap-3 rounded-lg border border-dashed border-zinc-700/40 px-4 py-3"
+                  className="flex items-center gap-3 rounded-xl border border-dashed border-zinc-800/60 px-4 py-3"
                 >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-800 text-sm text-zinc-600">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-800/40 text-xs text-zinc-700">
                     {players.length + i + 1}
                   </span>
-                  <span className="text-sm text-zinc-600">
-                    Waiting for player... (bot will fill)
+                  <span className="text-xs text-zinc-700">
+                    Bot fills at start
                   </span>
                 </div>
               )
@@ -60,30 +69,23 @@ export function LobbyRoom() {
           </div>
         </div>
 
-        {/* Settings (host only) */}
-        {isHost && (
+        {/* Settings */}
+        {isHost ? (
           <SettingsPanel settings={settings} onUpdate={updateSettings} />
-        )}
-
-        {/* Settings (non-host view) */}
-        {!isHost && (
-          <div className="rounded-xl border border-zinc-700/50 bg-zinc-800/30 p-5">
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-400">
-              Game Settings
+        ) : (
+          <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-5">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              Settings
             </h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <span className="text-zinc-500">Timer</span>
-              <span className="text-zinc-300">
+            <div className="grid grid-cols-2 gap-y-2 text-sm">
+              <span className="text-zinc-600">Timer</span>
+              <span className="text-zinc-400 text-right">
                 {settings.turnTimerSeconds ? `${settings.turnTimerSeconds}s` : 'Off'}
               </span>
-              <span className="text-zinc-500">Bot Difficulty</span>
-              <span className="text-zinc-300 capitalize">{settings.botDifficulty}</span>
-              <span className="text-zinc-500">Stacking</span>
-              <span className="text-zinc-300">{settings.variants.stacking ? 'On' : 'Off'}</span>
-              <span className="text-zinc-500">Jump-In</span>
-              <span className="text-zinc-300">{settings.variants.jumpIn ? 'On' : 'Off'}</span>
-              <span className="text-zinc-500">Seven-0</span>
-              <span className="text-zinc-300">{settings.variants.sevenZero ? 'On' : 'Off'}</span>
+              <span className="text-zinc-600">Bots</span>
+              <span className="text-zinc-400 capitalize text-right">{settings.botDifficulty}</span>
+              <span className="text-zinc-600">Stacking</span>
+              <span className="text-zinc-400 text-right">{settings.variants.stacking ? 'On' : 'Off'}</span>
             </div>
           </div>
         )}
@@ -94,26 +96,27 @@ export function LobbyRoom() {
             <button
               onClick={startGame}
               disabled={players.length < 1}
-              className="flex-1 rounded-lg bg-green-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-green-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="group relative flex-1 overflow-hidden rounded-xl py-3.5 font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-40"
+              style={{ background: 'linear-gradient(135deg, #3DAA4F 0%, #2a8a38 100%)' }}
             >
-              Start Game
+              <span className="relative z-10">Start Game</span>
+              <div className="absolute inset-0 bg-white opacity-0 transition-opacity group-hover:opacity-10" />
             </button>
           )}
           <button
             onClick={leaveRoom}
-            className="rounded-lg border border-zinc-600 bg-zinc-800 px-4 py-3 font-semibold text-zinc-300 transition-colors hover:bg-zinc-700"
+            className="rounded-xl border border-zinc-800 bg-zinc-900/60 px-5 py-3.5 text-sm font-medium text-zinc-500 transition-colors hover:border-zinc-700 hover:text-zinc-400"
           >
             Leave
           </button>
         </div>
 
-        {/* Waiting message */}
         {!isHost && (
-          <p className="text-center text-sm text-zinc-500">
-            Waiting for host to start the game...
+          <p className="text-center text-xs text-zinc-600">
+            Waiting for host to start...
           </p>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }

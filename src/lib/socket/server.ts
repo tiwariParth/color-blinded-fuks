@@ -5,7 +5,29 @@ import type {
   InterServerEvents,
   SocketData,
   CardColor,
+  LogEntryType,
+  GameState,
 } from '@/lib/types';
+
+function pushLog(state: GameState, type: LogEntryType, message: string) {
+  state.logs.push({ id: crypto.randomUUID(), timestamp: Date.now(), type, message });
+  if (state.logs.length > 100) state.logs.shift();
+}
+
+function cardLabel(card: { value: string; color: string; isWild: boolean }, chosenColor?: string): string {
+  if (card.value === 'wild') return `Wild (→ ${chosenColor || '?'})`;
+  if (card.value === 'wild_draw4') return `Wild +4 (→ ${chosenColor || '?'})`;
+  const c = card.color.charAt(0).toUpperCase() + card.color.slice(1);
+  const v = card.value === 'draw2' ? '+2' : card.value === 'skip' ? 'Skip' : card.value === 'reverse' ? 'Reverse' : card.value;
+  return `${c} ${v}`;
+}
+
+function cardLogType(card: { value: string; isWild: boolean }): LogEntryType {
+  if (card.isWild) return 'wild';
+  if (card.value === 'skip' || card.value === 'reverse') return 'skip';
+  if (card.value === 'draw2') return 'draw';
+  return 'play';
+}
 import {
   createRoom,
   joinRoom,
@@ -186,10 +208,11 @@ function executeBotTurn(io: IO, roomCode: string) {
       bot.hand.splice(cardIndex, 1);
 
       if (bot.hand.length === 0) {
+        const cc = card.isWild ? chooseBotColor(bot, difficulty) : undefined;
         state.discardPile.push(card);
-        if (card.isWild) state.currentColor = chooseBotColor(bot, difficulty);
-        else state.currentColor = card.color;
+        state.currentColor = cc ?? card.color;
         state.lastAction = `${bot.name} played their last card!`;
+        pushLog(state, cardLogType(card), `${bot.name} played ${cardLabel(card, cc)} — UNO OUT!`);
         checkAndHandleWin(io, roomCode, botIndex);
         return;
       }
@@ -197,16 +220,19 @@ function executeBotTurn(io: IO, roomCode: string) {
       const chosenColor = card.isWild ? chooseBotColor(bot, difficulty) : undefined;
       applyCardEffect(state, card, chosenColor);
       state.lastAction = `${bot.name} played ${card.color} ${card.value}`;
+      pushLog(state, cardLogType(card), `${bot.name} played ${cardLabel(card, chosenColor)}`);
 
       // Bot says UNO if down to 1 card
       if (bot.hand.length === 1 && shouldBotSayUno(difficulty)) {
         bot.saidUno = true;
         io.to(roomCode).emit('UNO_CALLED', { playerId: bot.id });
+        pushLog(state, 'uno', `${bot.name} called UNO!`);
       }
     } else {
       // Bot must draw the pending amount
       drawCards(state, botIndex, state.pendingDrawCount);
       state.lastAction = `${bot.name} drew ${state.pendingDrawCount} cards`;
+      pushLog(state, 'draw', `${bot.name} drew ${state.pendingDrawCount} cards (forced)`);
       state.pendingDrawCount = 0;
       state.currentPlayerIndex = nextPlayerIndex(botIndex, state.direction, state.players.length);
     }
@@ -226,10 +252,11 @@ function executeBotTurn(io: IO, roomCode: string) {
 
     // Check win
     if (bot.hand.length === 0) {
+      const cc = card.isWild ? chooseBotColor(bot, difficulty) : undefined;
       state.discardPile.push(card);
-      if (card.isWild) state.currentColor = chooseBotColor(bot, difficulty);
-      else state.currentColor = card.color;
+      state.currentColor = cc ?? card.color;
       state.lastAction = `${bot.name} played their last card!`;
+      pushLog(state, cardLogType(card), `${bot.name} played ${cardLabel(card, cc)} — UNO OUT!`);
       checkAndHandleWin(io, roomCode, botIndex);
       return;
     }
@@ -237,17 +264,20 @@ function executeBotTurn(io: IO, roomCode: string) {
     const chosenColor = card.isWild ? chooseBotColor(bot, difficulty) : undefined;
     applyCardEffect(state, card, chosenColor);
     state.lastAction = `${bot.name} played ${card.color === 'wild' ? '' : card.color} ${card.value}`;
+    pushLog(state, cardLogType(card), `${bot.name} played ${cardLabel(card, chosenColor)}`);
 
     // Bot says UNO if down to 1 card
     if (bot.hand.length === 1 && shouldBotSayUno(difficulty)) {
       bot.saidUno = true;
       io.to(roomCode).emit('UNO_CALLED', { playerId: bot.id });
+      pushLog(state, 'uno', `${bot.name} called UNO!`);
     }
   } else {
     // No playable card — draw one
     drawCards(state, botIndex, 1);
     const drawnCard = bot.hand[bot.hand.length - 1];
     const topDiscard = state.discardPile[state.discardPile.length - 1];
+    pushLog(state, 'draw', `${bot.name} drew a card`);
 
     if (drawnCard && canPlayCard(drawnCard, topDiscard, state.currentColor, 0, state.settings.variants)) {
       // Play the drawn card
@@ -255,10 +285,11 @@ function executeBotTurn(io: IO, roomCode: string) {
       bot.hand.splice(drawnIndex, 1);
 
       if (bot.hand.length === 0) {
+        const cc = drawnCard.isWild ? chooseBotColor(bot, difficulty) : undefined;
         state.discardPile.push(drawnCard);
-        if (drawnCard.isWild) state.currentColor = chooseBotColor(bot, difficulty);
-        else state.currentColor = drawnCard.color;
+        state.currentColor = cc ?? drawnCard.color;
         state.lastAction = `${bot.name} drew and played their last card!`;
+        pushLog(state, cardLogType(drawnCard), `${bot.name} drew & played ${cardLabel(drawnCard, cc)} — UNO OUT!`);
         checkAndHandleWin(io, roomCode, botIndex);
         return;
       }
@@ -266,16 +297,19 @@ function executeBotTurn(io: IO, roomCode: string) {
       const chosenColor = drawnCard.isWild ? chooseBotColor(bot, difficulty) : undefined;
       applyCardEffect(state, drawnCard, chosenColor);
       state.lastAction = `${bot.name} drew and played ${drawnCard.color === 'wild' ? '' : drawnCard.color} ${drawnCard.value}`;
+      pushLog(state, cardLogType(drawnCard), `${bot.name} drew & played ${cardLabel(drawnCard, chosenColor)}`);
 
       // Bot says UNO if down to 1 card
       if (bot.hand.length === 1 && shouldBotSayUno(difficulty)) {
         bot.saidUno = true;
         io.to(roomCode).emit('UNO_CALLED', { playerId: bot.id });
+        pushLog(state, 'uno', `${bot.name} called UNO!`);
       }
     } else {
       // Can't play drawn card — pass
       state.currentPlayerIndex = nextPlayerIndex(botIndex, state.direction, state.players.length);
       state.lastAction = `${bot.name} drew a card and passed`;
+      pushLog(state, 'draw', `${bot.name} couldn't play — turn skipped`);
     }
   }
 
@@ -435,11 +469,13 @@ export function setupSocketHandlers(io: IO) {
         if (card.isWild) state.currentColor = chosenColor || 'red';
         else state.currentColor = card.color;
         state.lastAction = `${player.name} played their last card!`;
+        pushLog(state, cardLogType(card), `${player.name} played ${cardLabel(card, chosenColor)} — UNO OUT!`);
         checkAndHandleWin(io, roomCode, playerIndex);
         return;
       }
 
       applyCardEffect(state, card, chosenColor as CardColor | undefined);
+      pushLog(state, cardLogType(card), `${player.name} played ${cardLabel(card, chosenColor)}`);
 
       emitGameStateToAll(io, roomCode);
       scheduleBotTurnIfNeeded(io, roomCode);
@@ -472,11 +508,13 @@ export function setupSocketHandlers(io: IO) {
         state.discardPile.push(card);
         state.currentColor = color;
         state.lastAction = `${player.name} played their last card!`;
+        pushLog(state, 'wild', `${player.name} played ${cardLabel(card, color)} — UNO OUT!`);
         checkAndHandleWin(io, roomCode, playerIndex);
         return;
       }
 
       applyCardEffect(state, card, color);
+      pushLog(state, 'wild', `${player.name} played ${cardLabel(card, color)}`);
 
       emitGameStateToAll(io, roomCode);
       scheduleBotTurnIfNeeded(io, roomCode);
@@ -494,8 +532,10 @@ export function setupSocketHandlers(io: IO) {
       const player = state.players[playerIndex];
 
       if (state.pendingDrawCount > 0) {
-        drawCards(state, playerIndex, state.pendingDrawCount);
-        state.lastAction = `${player.name} drew ${state.pendingDrawCount} cards`;
+        const count = state.pendingDrawCount;
+        drawCards(state, playerIndex, count);
+        state.lastAction = `${player.name} drew ${count} cards`;
+        pushLog(state, 'draw', `${player.name} drew ${count} cards (forced)`);
         state.pendingDrawCount = 0;
         state.currentPlayerIndex = nextPlayerIndex(
           state.currentPlayerIndex,
@@ -506,6 +546,7 @@ export function setupSocketHandlers(io: IO) {
         drawCards(state, playerIndex, 1);
         const drawnCard = player.hand[player.hand.length - 1];
         state.lastAction = `${player.name} drew a card`;
+        pushLog(state, 'draw', `${player.name} drew a card`);
 
         const topDiscard = state.discardPile[state.discardPile.length - 1];
         if (
@@ -563,6 +604,7 @@ export function setupSocketHandlers(io: IO) {
       if (player.hand.length <= 2) {
         player.saidUno = true;
         io.to(roomCode).emit('UNO_CALLED', { playerId: socket.id });
+        pushLog(state, 'uno', `${player.name} called UNO!`);
         emitGameStateToAll(io, roomCode);
       }
     });
@@ -578,10 +620,11 @@ export function setupSocketHandlers(io: IO) {
 
       // Target must have exactly 1 card and not have said UNO
       if (target.hand.length === 1 && !target.saidUno) {
-        // Penalty: draw 2 cards
+        const catcher = state.players.find((p) => p.id === socket.id);
         drawCards(state, state.players.indexOf(target), 2);
         target.saidUno = true; // Prevent double-catch
         state.lastAction = `${target.name} was caught not saying UNO! +2 cards`;
+        pushLog(state, 'penalty', `${catcher?.name ?? 'Someone'} caught ${target.name} — +2 cards!`);
 
         io.to(roomCode).emit('UNO_PENALTY', { playerId: targetPlayerId });
         emitGameStateToAll(io, roomCode);

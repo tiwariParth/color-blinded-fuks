@@ -49,6 +49,15 @@ export interface GameSettings {
   };
 }
 
+export type LogEntryType = 'play' | 'draw' | 'skip' | 'reverse' | 'wild' | 'uno' | 'penalty' | 'system';
+
+export interface LogEntry {
+  id: string;
+  timestamp: number;
+  type: LogEntryType;
+  message: string;
+}
+
 export interface GameState {
   roomCode: string;
   phase: GamePhase;
@@ -66,6 +75,7 @@ export interface GameState {
   hostId: string;
   cumulativeScores: Record<string, number>;
   roundNumber: number;
+  logs: LogEntry[];
 }
 
 export interface RoomSummary {
@@ -88,6 +98,7 @@ export interface ClientGameState extends Omit<GameState, 'players' | 'deck'> {
   myHand: UnoCard[];
   cumulativeScores: Record<string, number>;
   roundNumber: number;
+  logs: LogEntry[];
 }
 
 // ── Socket Event Maps ───────────────────────────────────────────────────────

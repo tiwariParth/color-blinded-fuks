@@ -75,6 +75,7 @@ export function createRoom(
     hostId: hostSocketId,
     cumulativeScores: {},
     roundNumber: 0,
+    logs: [],
   };
 
   rooms.set(code, state);
@@ -222,6 +223,7 @@ export function startGame(roomCode: string, socketId: string): { state: GameStat
   state.winner = null;
   state.turnStartTime = Date.now();
   state.roundNumber = 1;
+  state.logs = [];
   state.lastAction = 'Game started!';
 
   // Initialize cumulative scores for all players
@@ -301,6 +303,7 @@ export function rematchGame(roomCode: string): { state: GameState | null; error?
   state.winner = null;
   state.turnStartTime = Date.now();
   state.roundNumber += 1;
+  state.logs = [];
   state.lastAction = `Round ${state.roundNumber} started!`;
 
   // Apply start card effects

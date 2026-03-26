@@ -2,8 +2,9 @@
 
 import { AnimatePresence } from 'framer-motion';
 import type { ClientPlayer } from '@/lib/types';
-import { CardBack } from '@/components/cards/CardBack';
 import { UnoButton } from '@/components/game/UnoButton';
+
+const AVATAR_COLORS = ['#E03A2A', '#2A6DB5', '#3DAA4F', '#F5C800', '#9333ea', '#ec4899', '#f97316', '#06b6d4'];
 
 interface PlayerSeatProps {
   player: ClientPlayer;
@@ -14,53 +15,59 @@ interface PlayerSeatProps {
 }
 
 export function PlayerSeat({ player, isCurrentTurn, isYou, canCatch, onCatch }: PlayerSeatProps) {
+  // Stable color from player name hash
+  const hash = player.name.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const avatarColor = AVATAR_COLORS[hash % AVATAR_COLORS.length];
+  const initial = player.name.charAt(0).toUpperCase();
+
   return (
     <div
-      className={`flex flex-col items-center gap-1 rounded-xl px-3 py-2 transition-all ${
+      className={`relative flex flex-col items-center gap-1.5 rounded-xl px-4 py-2.5 transition-all duration-300 ${
         isCurrentTurn
-          ? 'bg-yellow-500/10 ring-2 ring-yellow-400/60'
-          : 'bg-zinc-800/30'
+          ? 'turn-ring bg-yellow-400/8'
+          : 'bg-zinc-800/20'
       }`}
+      style={isCurrentTurn ? { boxShadow: '0 0 20px rgba(250,204,21,0.15)' } : {}}
     >
-      {/* Card count indicator */}
-      <div className="flex items-center gap-0.5">
-        {Array.from({ length: Math.min(player.handSize, 5) }).map((_, i) => (
-          <div key={i} className="-ml-3 first:ml-0">
-            <CardBack size="sm" />
-          </div>
-        ))}
-        {player.handSize > 5 && (
-          <span className="ml-1 text-xs text-zinc-400">+{player.handSize - 5}</span>
-        )}
+      {/* Avatar */}
+      <div
+        className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white"
+        style={{ backgroundColor: avatarColor, boxShadow: `0 0 10px ${avatarColor}44` }}
+      >
+        {player.type === 'bot' ? '~' : initial}
       </div>
 
-      {/* Player info */}
-      <div className="flex items-center gap-1.5 mt-1">
-        <span className="text-sm font-medium text-zinc-200 truncate max-w-[80px]">
-          {player.name}
-        </span>
-        {isYou && <span className="text-xs text-yellow-400">(you)</span>}
-        {player.type === 'bot' && (
-          <span className="text-xs text-zinc-500">🤖</span>
-        )}
+      {/* Name */}
+      <span className="max-w-[72px] truncate text-xs font-medium text-zinc-300">
+        {player.name}
+      </span>
+
+      {/* Card count pill */}
+      <div className="flex items-center gap-1 rounded-full bg-zinc-800/60 px-2 py-0.5">
+        <span className="text-[10px] font-mono text-zinc-400">{player.handSize}</span>
+        <svg width="10" height="14" viewBox="0 0 70 100" className="opacity-40">
+          <rect width="70" height="100" rx="10" fill="#888" />
+        </svg>
       </div>
 
       {/* UNO badge */}
       {player.handSize === 1 && player.saidUno && (
-        <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white animate-pulse">
+        <motion.span
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black text-white"
+          style={{ boxShadow: '0 0 12px rgba(224,58,42,0.5)' }}
+        >
           UNO!
-        </span>
+        </motion.span>
       )}
 
-      {/* Catch button — shown when opponent has 1 card and didn't say UNO */}
+      {/* Catch */}
       <AnimatePresence>
         {canCatch && onCatch && (
           <UnoButton onClick={onCatch} label="Catch!" variant="catch" />
         )}
       </AnimatePresence>
-
-      {/* Card count */}
-      <span className="text-xs text-zinc-500">{player.handSize} cards</span>
     </div>
   );
 }

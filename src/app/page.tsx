@@ -2,8 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { useSocket } from '@/hooks/useSocket';
 import { useGameStore } from '@/hooks/useGameState';
+
+const FLOATING_CARDS = [
+  { color: '#E03A2A', value: '7', x: '8%',  y: '15%', rotate: -18, delay: 0 },
+  { color: '#F5C800', value: '3', x: '85%', y: '20%', rotate: 12,  delay: 0.3 },
+  { color: '#3DAA4F', value: '+2', x: '12%', y: '75%', rotate: 22,  delay: 0.6 },
+  { color: '#2A6DB5', value: '9', x: '88%', y: '70%', rotate: -15, delay: 0.9 },
+  { color: '#E03A2A', value: 'R', x: '5%',  y: '45%', rotate: 35,  delay: 0.2 },
+  { color: '#3DAA4F', value: '0', x: '92%', y: '45%', rotate: -28, delay: 0.5 },
+];
 
 export default function Home() {
   const router = useRouter();
@@ -33,81 +43,123 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-1 items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
-        {/* Title */}
-        <div className="text-center">
-          <h1 className="text-6xl font-black tracking-tighter">
-            <span className="text-red-500">U</span>
-            <span className="text-yellow-400">N</span>
-            <span className="text-green-500">O</span>
+    <div className="relative flex flex-1 items-center justify-center overflow-hidden p-4">
+      {/* Ambient radial gradient */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse at 50% 30%, rgba(224,58,42,0.08) 0%, rgba(245,200,0,0.04) 30%, transparent 70%)',
+        }}
+      />
+
+      {/* Floating decorative cards */}
+      {FLOATING_CARDS.map((card, i) => (
+        <motion.div
+          key={i}
+          className="pointer-events-none absolute hidden md:block"
+          style={{ left: card.x, top: card.y }}
+          initial={{ opacity: 0, y: 30, rotate: card.rotate - 10 }}
+          animate={{
+            opacity: 0.12,
+            y: [0, -8, 0],
+            rotate: card.rotate,
+          }}
+          transition={{
+            opacity: { delay: card.delay, duration: 0.8 },
+            y: { delay: card.delay, duration: 4 + i * 0.5, repeat: Infinity, ease: 'easeInOut' },
+            rotate: { delay: card.delay, duration: 0.8 },
+          }}
+        >
+          <svg width="56" height="80" viewBox="0 0 70 100">
+            <rect width="70" height="100" rx="8" fill={card.color} />
+            <ellipse cx="35" cy="50" rx="22" ry="32" fill="rgba(255,255,255,0.9)" transform="rotate(-15,35,50)" />
+            <text x="35" y="56" textAnchor="middle" dominantBaseline="middle" fontSize="26" fontWeight="bold" fill={card.color} fontFamily="Arial">{card.value}</text>
+          </svg>
+        </motion.div>
+      ))}
+
+      {/* Main content */}
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 w-full max-w-sm"
+      >
+        {/* UNO Logo */}
+        <div className="mb-10 text-center">
+          <h1
+            className="text-7xl font-black tracking-tight"
+            style={{
+              textShadow: '0 0 60px rgba(224,58,42,0.3), 0 0 120px rgba(245,200,0,0.15)',
+            }}
+          >
+            <span style={{ color: 'var(--uno-red)' }}>U</span>
+            <span style={{ color: 'var(--uno-yellow)' }}>N</span>
+            <span style={{ color: 'var(--uno-green)' }}>O</span>
           </h1>
-          <p className="mt-2 text-sm text-zinc-400">Online Multiplayer</p>
+          <p className="mt-1 text-xs font-medium uppercase tracking-[0.3em] text-zinc-500">
+            play with friends
+          </p>
         </div>
 
-        {/* Name input */}
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-zinc-300 mb-1.5">
-            Your Name
-          </label>
+        {/* Name */}
+        <div className="mb-5">
           <input
             id="name"
             type="text"
             maxLength={20}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Enter your display name"
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-white placeholder-zinc-500 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500"
+            placeholder="Your name"
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-900/80 px-4 py-3.5 text-center text-white placeholder-zinc-600 outline-none backdrop-blur-sm transition-all focus:border-zinc-600 focus:bg-zinc-900"
           />
         </div>
 
-        {/* Error */}
         {error && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <div className="mb-4 rounded-xl border border-red-500/20 bg-red-950/40 px-4 py-3 text-center text-sm text-red-400">
             {error}
           </div>
         )}
 
-        {/* Create Room */}
-        <div className="space-y-3">
-          <button
-            onClick={handleCreate}
-            disabled={!name.trim() || mode === 'create'}
-            className="w-full rounded-lg bg-red-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {mode === 'create' ? 'Creating...' : 'Create Room'}
-          </button>
-        </div>
+        {/* Create */}
+        <button
+          onClick={handleCreate}
+          disabled={!name.trim() || mode === 'create'}
+          className="group relative mb-4 w-full overflow-hidden rounded-xl py-3.5 font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-40"
+          style={{
+            background: 'linear-gradient(135deg, #E03A2A 0%, #c0281a 100%)',
+          }}
+        >
+          <span className="relative z-10">{mode === 'create' ? 'Creating...' : 'Create Room'}</span>
+          <div className="absolute inset-0 bg-white opacity-0 transition-opacity group-hover:opacity-10" />
+        </button>
 
         {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-zinc-700" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="bg-zinc-900 px-4 text-zinc-500">or</span>
-          </div>
+        <div className="relative mb-4 flex items-center gap-4">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
+          <span className="text-xs font-medium text-zinc-600">or join</span>
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
         </div>
 
-        {/* Join Room */}
-        <div className="space-y-3">
+        {/* Join */}
+        <div className="flex gap-2">
           <input
             type="text"
             maxLength={6}
             value={joinCode}
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-            placeholder="Enter room code"
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-center text-lg font-mono tracking-widest text-white placeholder-zinc-500 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500"
+            placeholder="CODE"
+            className="w-32 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-3.5 text-center font-mono text-lg tracking-[0.2em] text-white placeholder-zinc-700 outline-none backdrop-blur-sm transition-all focus:border-zinc-600"
           />
           <button
             onClick={handleJoin}
             disabled={!name.trim() || !joinCode.trim() || mode === 'join'}
-            className="w-full rounded-lg border border-zinc-600 bg-zinc-800 px-4 py-3 font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/80 py-3.5 font-bold text-white transition-all hover:border-zinc-600 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {mode === 'join' ? 'Joining...' : 'Join Room'}
+            {mode === 'join' ? 'Joining...' : 'Join'}
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

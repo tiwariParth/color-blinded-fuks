@@ -14,13 +14,13 @@ export function RoomCodeDisplay({ code }: { code: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="group flex items-center gap-3 rounded-xl border border-zinc-700 bg-zinc-800/50 px-6 py-4 transition-colors hover:border-zinc-500"
+      className="group mx-auto flex items-center gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/60 px-6 py-3.5 transition-all hover:border-zinc-700"
     >
-      <span className="font-mono text-3xl font-bold tracking-[0.3em] text-white">
+      <span className="font-mono text-2xl font-bold tracking-[0.3em] text-white">
         {code}
       </span>
-      <span className="text-xs text-zinc-500 group-hover:text-zinc-300">
-        {copied ? 'Copied!' : 'Click to copy'}
+      <span className="text-[10px] text-zinc-600 transition-colors group-hover:text-zinc-400">
+        {copied ? 'Copied!' : 'Copy'}
       </span>
     </button>
   );
