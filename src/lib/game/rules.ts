@@ -142,15 +142,14 @@ export function applyCardEffect(
     }
 
     case 'hand_bomb': {
-      // Next player takes half of current player's cards (rounded up)
+      // Next player draws cards equal to half the bomber's hand size (rounded up, min 2)
       const bomber = state.players[state.currentPlayerIndex];
       const victimIdx = nextPlayerIndex(state.currentPlayerIndex, state.direction, playerCount);
       const victim = state.players[victimIdx];
-      const count = Math.ceil(bomber.hand.length / 2);
-      const donated = bomber.hand.splice(0, count);
-      victim.hand.push(...donated);
+      const count = Math.max(2, Math.ceil(bomber.hand.length / 2));
+      drawCards(state, victimIdx, count);
       state.currentPlayerIndex = nextPlayerIndex(victimIdx, state.direction, playerCount);
-      state.lastAction = `${bomber.name} bombed ${victim.name} with ${count} cards!`;
+      state.lastAction = `${bomber.name} bombed ${victim.name} — drew ${count} cards!`;
       break;
     }
 

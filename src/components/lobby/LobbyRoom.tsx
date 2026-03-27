@@ -86,6 +86,8 @@ export function LobbyRoom() {
               <span className="text-zinc-400 capitalize text-right">{settings.botDifficulty}</span>
               <span className="text-zinc-600">Stacking</span>
               <span className="text-zinc-400 text-right">{settings.variants.stacking ? 'On' : 'Off'}</span>
+              <span className="text-zinc-600">Chaos Cards</span>
+              <span className="text-zinc-400 text-right">{settings.variants.chaosCards ? 'On' : 'Off'}</span>
             </div>
           </div>
         )}

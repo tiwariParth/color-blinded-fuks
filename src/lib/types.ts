@@ -48,6 +48,7 @@ export interface GameSettings {
     stacking: boolean;
     jumpIn: boolean;
     sevenZero: boolean;
+    chaosCards: boolean;
   };
 }
 

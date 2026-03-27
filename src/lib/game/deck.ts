@@ -5,7 +5,7 @@ const COLORS: CardColor[] = ['red', 'yellow', 'green', 'blue'];
 const NUMBER_VALUES: CardValue[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const ACTION_VALUES: CardValue[] = ['skip', 'reverse', 'draw2'];
 
-export function createDeck(): UnoCard[] {
+export function createDeck(includeChaos = false): UnoCard[] {
   const cards: UnoCard[] = [];
   let idCounter = 0;
 
@@ -63,15 +63,17 @@ export function createDeck(): UnoCard[] {
     });
   }
 
-  // 1 of each chaos/power card (all wild)
-  const CHAOS_CARDS: CardValue[] = ['trade_hands', 'hand_bomb', 'reverse_roulette', 'freeze', 'tax_winner'];
-  for (const value of CHAOS_CARDS) {
-    cards.push({
-      id: `chaos_${value}_${idCounter++}`,
-      color: 'wild',
-      value,
-      isWild: true,
-    });
+  // 1 of each chaos/power card (all wild) — only if enabled
+  if (includeChaos) {
+    const CHAOS_CARDS: CardValue[] = ['trade_hands', 'hand_bomb', 'reverse_roulette', 'freeze', 'tax_winner'];
+    for (const value of CHAOS_CARDS) {
+      cards.push({
+        id: `chaos_${value}_${idCounter++}`,
+        color: 'wild',
+        value,
+        isWild: true,
+      });
+    }
   }
 
   return cards;

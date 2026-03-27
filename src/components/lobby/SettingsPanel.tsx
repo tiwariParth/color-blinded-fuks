@@ -75,6 +75,12 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
           checked={settings.variants.sevenZero}
           onChange={(v) => onUpdate({ variants: { ...settings.variants, sevenZero: v } })}
         />
+        <Toggle
+          label="Chaos Cards"
+          desc="5 wild power cards with special effects"
+          checked={settings.variants.chaosCards}
+          onChange={(v) => onUpdate({ variants: { ...settings.variants, chaosCards: v } })}
+        />
       </div>
     </div>
   );

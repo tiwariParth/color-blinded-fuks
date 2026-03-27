@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS: GameSettings = {
     stacking: false,
     jumpIn: false,
     sevenZero: false,
+    chaosCards: false,
   },
 };
 
@@ -201,7 +202,7 @@ export function startGame(roomCode: string, socketId: string): { state: GameStat
   }
 
   // Create and shuffle deck
-  const deck = shuffle(createDeck());
+  const deck = shuffle(createDeck(state.settings.variants.chaosCards));
 
   // Deal 7 cards to each player
   const { hands, remaining } = dealHands(deck, state.players.length);
@@ -281,7 +282,7 @@ export function rematchGame(roomCode: string): { state: GameState | null; error?
   if (state.phase !== 'finished') return { state: null, error: 'Game is not finished' };
 
   // Create and shuffle a new deck
-  const deck = shuffle(createDeck());
+  const deck = shuffle(createDeck(state.settings.variants.chaosCards));
 
   // Deal 7 cards to each player
   const { hands, remaining } = dealHands(deck, state.players.length);
